@@ -56,7 +56,7 @@ describe('kargo adapter tests', function () {
     sandbox.restore();
 
     for (let cookie of cookies) {
-      setCookie(cookie, '', -1);
+      removeCookie(cookie);
     }
 
     for (let localStorageItem of localStorageItems) {
@@ -68,13 +68,21 @@ describe('kargo adapter tests', function () {
   });
 
   function setCookie(cname, cvalue, exdays = 1) {
+    _setCookie(cname, cvalue, exdays);
+    cookies.push(cname);
+  }
+
+  function removeCookie(cname) {
+    _setCookie(cname, '', -1);
+  }
+
+  function _setCookie(cname, cvalue, exdays = 1) {
     var d = new Date(),
       expires;
 
     d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
     expires = `expires=${d.toUTCString()}`;
     document.cookie = `${cname}=${cvalue};${expires};path=/`;
-    cookies.push(cname);
   }
 
   function setLocalStorageItem(name, val) {
@@ -83,12 +91,9 @@ describe('kargo adapter tests', function () {
   }
 
   function simulateAdLoader() {
-    return sandbox.stub(adloader, 'loadScript', function(url) {
-      var callback = url.match(/cb=window\.(.*)/)[1];
-      // eslint-disable-next-line no-new-func
-      (new Function(`${callback}(${JSON.stringify(adUnits)})`))();
-      var params = url.match(/\?json=(.*)&cb=/)[1];
-      krakenParams = JSON.parse(decodeURIComponent(params));
+    sandbox.stub(adloader, 'loadScript', (url) => {
+      window.pbjs.kargo_prebid_f4cf851b_665a_43d7_b22c_33c8fdebe577(adUnits);
+      krakenParams = JSON.parse(decodeURIComponent(url.match(/\?json=(.*)&cb=/)[1]));
     });
   }
 
